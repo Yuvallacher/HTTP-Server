@@ -70,6 +70,20 @@ void main()
 				FD_SET(sockets[i].id, &waitSend);
 		}
 
+		for (int i = 0; i < MAX_SOCKETS; i++)
+		{
+			if (sockets[i].recv == RECEIVE && sockets[i].receivedMessage)
+			{
+				time_t currentTime = time(NULL);
+				if (currentTime - sockets[i].lastReceivedTime >= 120)
+				{
+					cout << "HTTP Server: Closing idle connection for socket " << sockets[i].id << endl;
+					closesocket(sockets[i].id);
+					removeSocket(i);
+				}
+			}
+		}
+
 		int nfd = select(0, &waitRecv, &waitSend, NULL, NULL);
 
 		if (nfd == SOCKET_ERROR)
@@ -124,6 +138,7 @@ bool addSocket(SOCKET id, int what)
 			sockets[i].recv = what;
 			sockets[i].send = IDLE;
 			sockets[i].len = 0;
+			sockets[i].receivedMessage = false;
 			socketsCount++;
 			return (true);
 		}
@@ -170,8 +185,10 @@ void receiveMessage(int index)
 {
 	SOCKET msgSocket = sockets[index].id;
 
+	sockets[index].receivedMessage = true;
 	int len = sockets[index].len;
 	int bytesRecv = recv(msgSocket, &sockets[index].buffer[len], sizeof(sockets[index].buffer) - len, 0);
+	sockets[index].lastReceivedTime = time(NULL);
 
 	if (SOCKET_ERROR == bytesRecv) {
 		cout << "HTTP Server: Error at recv(): " << WSAGetLastError() << endl;
@@ -186,7 +203,7 @@ void receiveMessage(int index)
 	}
 	else {
 		sockets[index].buffer[len + bytesRecv] = '\0';
-		cout << "HTTP Server: Recieved: " << bytesRecv << " bytes of \"" << &sockets[index].buffer[len] << "\" message.\n";
+		cout << "HTTP Server: Recieved: " << bytesRecv << " bytes of message:\n\"" << &sockets[index].buffer[len] << "\"\n\n";
 
 		sockets[index].len += bytesRecv;
 		parseHTTPRequest(sockets[index]);
@@ -204,7 +221,8 @@ void sendMessage(int index)
 		return;
 	}
 
-	cout << "HTTP Server: Sent: " << bytesSent << "\\" << sockets[index].len << " bytes of message:\n\"" << sockets[index].buffer << "\"\n";
+	cout << "HTTP Server: Sent: " << bytesSent << "\\" << sockets[index].len << " bytes of message:\n\"" << sockets[index].buffer << "\"\n\n";
+	sockets[index].receivedMessage = false;
 	sockets[index].len = 0;
 	sockets[index].send = IDLE;
 }

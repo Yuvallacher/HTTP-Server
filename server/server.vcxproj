@@ -133,11 +133,6 @@
   <ItemGroup>
     <ClInclude Include="HTTPServer.h" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="html\index_en.html" />
-    <None Include="html\index_fr.html" />
-    <None Include="html\index_he.html" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
